@@ -22,9 +22,15 @@ export const MODERATION_TEXT = {
   cancel: t`Cancel`,
   actionCreationPlaceholder: t`You can add details if you'd like`,
   user: {
-    verification: {},
-    flag: {},
-    question: {},
+    verification: {
+      action: t`Verify this`, // not real translation
+    },
+    flag: {
+      action: t`Something's wrong`,
+    },
+    question: {
+      action: t`I'm confused`,
+    },
   },
   moderator: {
     action: t`Moderate`,
