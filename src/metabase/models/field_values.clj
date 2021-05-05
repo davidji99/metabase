@@ -80,18 +80,25 @@
 
 ;; ## FieldValues Helper Functions
 
-(s/defn field-should-have-field-values? :- s/Bool
-  "Should this `field` be backed by a corresponding FieldValues object?" {:arglists '([field])}
-  [{base-type :base_type, visibility-type :visibility_type, has-field-values :has_field_values, :as field}
-   :- {:visibility_type  su/KeywordOrString
-       :base_type        (s/maybe su/KeywordOrString)
-       :has_field_values (s/maybe su/KeywordOrString)
-       s/Keyword         s/Any}]
-  (boolean
-   (and (not (contains? #{:retired :sensitive :hidden :details-only} (keyword visibility-type)))
-        (not (isa? (keyword base-type) :type/Temporal))
-        (#{:list :auto-list} (keyword has-field-values)))))
-
+(defn field-should-have-field-values?
+  "Should this `field` be backed by a corresponding FieldValues object?"
+  [field-or-field-id]
+  (if (map? field-or-field-id)
+    (let [{base-type        :base_type
+           visibility-type  :visibility_type
+           has-field-values :has_field_values
+           :as              field} field-or-field-id]
+      (s/check {:visibility_type  su/KeywordOrString
+                :base_type        (s/maybe su/KeywordOrString)
+                :has_field_values (s/maybe su/KeywordOrString)
+                s/Keyword         s/Any}
+               field)
+      (boolean
+       (and (not (contains? #{:retired :sensitive :hidden :details-only} (keyword visibility-type)))
+            (not (isa? (keyword base-type) :type/Temporal))
+            (#{:list :auto-list} (keyword has-field-values)))))
+    (let [field-id (u/the-id field-or-field-id)]
+      (db/select-one ['Field :base_type :visibility_type :has_field_values] :id field-id))))
 
 (defn- values-less-than-total-max-length?
   "`true` if the combined length of all the values in `distinct-values` is below the threshold for what we'll allow in a
