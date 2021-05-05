@@ -19,8 +19,12 @@ Object.assign(PLUGIN_MODERATION_SERVICE, {
   getModerationStatusIcon,
 });
 
-export function getModerationActionsList() {
-  return [ACTIONS.verification, ACTIONS.flag, ACTIONS.question];
+export function getModerationIssueTypes() {
+  return ["verification", "flag", "question"];
+}
+
+export function getModerationRequestActionTypes() {
+  return ["verification", "flag", "question", "dismiss"];
 }
 
 export function getModerationStatusIcon(type) {
@@ -38,6 +42,26 @@ export function getOpenIssues() {
     {
       id: 1,
       type: "verification",
+      title: "FooMcFoooo oo",
+      text: "1\n2\n3\n4\n5\n6",
+      timestamp: Date.now(),
+      comments: [],
+    },
+    {
+      id: 2,
+      type: "flag",
+      title: "John John",
+      text:
+        "adasdasdsdasdasdas asdsadasdada dasd asd asda sda d ds d sadasdasdsasd",
+      timestamp: Date.now(),
+      comments: [
+        {
+          id: 1,
+          title: "asdasdasd",
+          text: "foo",
+          timestamp: Date.now(),
+        },
+      ],
     },
   ];
 }

@@ -22,6 +22,7 @@ function QuestionDetailsSidebarPanel({ setView, question, onOpenModal }) {
         <ClampedText className="px2 pb2" text={description} visibleLines={8} />
         <div className="px1 flex justify-between">
           <ModerationIssueActionMenu
+            triggerClassName="Button--round text-brand border-brand"
             onAction={issueType => {
               setView({
                 name: SIDEBAR_VIEWS.CREATE_ISSUE_PANEL,

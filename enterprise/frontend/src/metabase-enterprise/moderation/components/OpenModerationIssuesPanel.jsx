@@ -1,28 +1,14 @@
 import React from "react";
 import PropTypes from "prop-types";
 import { t } from "ttag";
-import cx from "classnames";
 
-import {
-  getOpenIssues,
-  getColor,
-  getModerationStatusIcon,
-} from "metabase-enterprise/moderation";
-import { MODERATION_TEXT } from "metabase-enterprise/moderation/constants";
+import { getOpenIssues } from "metabase-enterprise/moderation";
 import Button from "metabase/components/Button";
-import Icon from "metabase/components/Icon";
 import { ModerationIssueThread } from "metabase-enterprise/moderation/components/ModerationIssueThread";
 
 OpenModerationIssuesPanel.propTypes = {
   onReturn: PropTypes.func.isRequired,
 };
-
-// className,
-// title,
-// timestamp,
-// text,
-// visibleLines,
-// actions = []
 
 export function OpenModerationIssuesPanel({ onReturn }) {
   const issues = getOpenIssues();
@@ -43,6 +29,8 @@ export function OpenModerationIssuesPanel({ onReturn }) {
               key={issue.id}
               className="py2 border-row-divider"
               issue={issue}
+              onComment={() => {}}
+              onResolve={() => {}}
             />
           );
         })}

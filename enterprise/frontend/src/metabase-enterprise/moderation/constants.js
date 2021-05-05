@@ -16,6 +16,11 @@ export const ACTIONS = {
     icon: "clarification",
     color: "accent2",
   },
+  dismiss: {
+    type: "dismiss",
+    icon: "close",
+    color: "medium",
+  },
 };
 
 export const MODERATION_TEXT = {
@@ -51,6 +56,9 @@ export const MODERATION_TEXT = {
       actionCreationDescription: "need text 1",
       actionCreationLabel: "need text 2",
       actionCreationButton: "need text 3",
+    },
+    dismiss: {
+      action: t`Dismiss`,
     },
   },
 };
