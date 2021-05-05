@@ -9,7 +9,7 @@
             [pretty.core :refer [PrettyPrintable]]))
 
 (defn invoke-ee-when-enabled
-  "Impo for `reify-ee-strategy-impl`. Invoke `method` using `ee-impl` if EE features are enabled, otherwise invoke with
+  "Impl for `reify-ee-strategy-impl`. Invoke `method` using `ee-impl` if EE features are enabled, otherwise invoke with
   `oss-impl`."
   [method ee-impl oss-impl & args]
   (let [impl (if (settings.metastore/enable-enhancements?)
