@@ -7,19 +7,12 @@
             [metabase.api.card-test :as card-api-test]
             [metabase.api.dashboard :as dashboard-api]
             [metabase.http-client :as http]
-            [metabase.models.card :refer [Card]]
-            [metabase.models.collection :refer [Collection]]
-            [metabase.models.dashboard :refer [Dashboard]]
-            [metabase.models.dashboard-card :refer [DashboardCard retrieve-dashboard-card]]
-            [metabase.models.dashboard-card-series :refer [DashboardCardSeries]]
+            [metabase.models :refer [Card Collection Dashboard DashboardCard DashboardCardSeries Field FieldValues Pulse
+                                     Table]]
             [metabase.models.dashboard-test :as dashboard-test]
-            [metabase.models.field :refer [Field]]
             [metabase.models.params.chain-filter-test :as chain-filter-test]
             [metabase.models.permissions :as perms]
             [metabase.models.permissions-group :as group]
-            [metabase.models.pulse :refer [Pulse]]
-            [metabase.models.revision :refer [Revision]]
-            [metabase.models.table :refer [Table]]
             [metabase.server.middleware.util :as middleware.u]
             [metabase.test :as mt]
             [metabase.util :as u]
@@ -736,196 +729,11 @@
                (count (db/select-ids DashboardCard, :dashboard_id dashboard-id))))))))
 
 
-;;; +----------------------------------------------------------------------------------------------------------------+
-;;; |                                          PUT /api/dashboard/:id/cards                                          |
-;;; +----------------------------------------------------------------------------------------------------------------+
-
-(deftest update-cards-test
-  (testing "PUT /api/dashboard/:id/cards"
-    ;; fetch a dashboard WITH a dashboard card on it
-    (mt/with-temp* [Dashboard     [{dashboard-id :id}]
-                    Card          [{card-id :id}]
-                    DashboardCard [{dashcard-id-1 :id} {:dashboard_id dashboard-id, :card_id card-id}]
-                    DashboardCard [{dashcard-id-2 :id} {:dashboard_id dashboard-id, :card_id card-id}]
-                    Card          [{series-id-1 :id}   {:name "Series Card"}]]
-      (with-dashboards-in-writeable-collection [dashboard-id]
-        (is (= {:sizeX                  2
-                :sizeY                  2
-                :col                    0
-                :row                    0
-                :series                 []
-                :parameter_mappings     []
-                :visualization_settings {}
-                :created_at             true
-                :updated_at             true}
-               (remove-ids-and-booleanize-timestamps (retrieve-dashboard-card dashcard-id-1))))
-        (is (= {:sizeX                  2
-                :sizeY                  2
-                :col                    0
-                :row                    0
-                :parameter_mappings     []
-                :visualization_settings {}
-                :series                 []
-                :created_at             true
-                :updated_at             true}
-               (remove-ids-and-booleanize-timestamps (retrieve-dashboard-card dashcard-id-2))))
-        (is (= {:status "ok"}
-               (mt/user-http-request :rasta :put 200 (format "dashboard/%d/cards" dashboard-id)
-                                     {:cards [{:id     dashcard-id-1
-                                               :sizeX  4
-                                               :sizeY  2
-                                               :col    0
-                                               :row    0
-                                               :series [{:id series-id-1}]}
-                                              {:id    dashcard-id-2
-                                               :sizeX 1
-                                               :sizeY 1
-                                               :col   1
-                                               :row   3}]})))
-        (is (= {:sizeX                  4
-                :sizeY                  2
-                :col                    0
-                :row                    0
-                :parameter_mappings     []
-                :visualization_settings {}
-                :series                 [{:name                   "Series Card"
-                                          :description            nil
-                                          :display                :table
-                                          :dataset_query          {}
-                                          :visualization_settings {}}]
-                :created_at             true
-                :updated_at             true}
-               (remove-ids-and-booleanize-timestamps (retrieve-dashboard-card dashcard-id-1))))
-        (is (= {:sizeX                  1
-                :sizeY                  1
-                :col                    1
-                :row                    3
-                :parameter_mappings     []
-                :visualization_settings {}
-                :series                 []
-                :created_at             true
-                :updated_at             true}
-               (remove-ids-and-booleanize-timestamps (retrieve-dashboard-card dashcard-id-2))))))))
+;;; (doseq [modle (doseq [modle (doseq [modle (doseq [modle +------------------------------------
+(deftest update-cards-t)
 
 
-;;; +----------------------------------------------------------------------------------------------------------------+
-;;; |                                        GET /api/dashboard/:id/revisions                                        |
-;;; +----------------------------------------------------------------------------------------------------------------+
-
-(deftest fetch-revisions-test
-  (testing "GET /api/dashboard/:id/revisions"
-    (mt/with-temp* [Dashboard [{dashboard-id :id}]
-                    Revision  [_ {:model        "Dashboard"
-                                  :model_id     dashboard-id
-                                  :object       {:name         "b"
-                                                 :description  nil
-                                                 :cards        [{:sizeX   2
-                                                                 :sizeY   2
-                                                                 :row     0
-                                                                 :col     0
-                                                                 :card_id 123
-                                                                 :series  []}]}
-                                  :is_creation  true}]
-                    Revision  [_ {:model    "Dashboard"
-                                  :model_id dashboard-id
-                                  :user_id  (mt/user->id :crowberto)
-                                  :object   {:name         "c"
-                                             :description  "something"
-                                             :cards        [{:sizeX   4
-                                                             :sizeY   3
-                                                             :row     0
-                                                             :col     0
-                                                             :card_id 123
-                                                             :series  [8 9]}]}
-                                  :message  "updated"}]]
-      (is (= [{:is_reversion false
-               :is_creation  false
-               :message      "updated"
-               :user         (-> (user-details (mt/fetch-user :crowberto))
-                                 (dissoc :email :date_joined :last_login :is_superuser :is_qbnewb))
-               :diff         {:before {:name        "b"
-                                       :description nil
-                                       :cards       [{:series nil, :sizeY 2, :sizeX 2}]}
-                              :after  {:name        "c"
-                                       :description "something"
-                                       :cards       [{:series [8 9], :sizeY 3, :sizeX 4}]}}
-               :description  "renamed it from \"b\" to \"c\", added a description, rearranged the cards and added some series to card 123."}
-              {:is_reversion false
-               :is_creation  true
-               :message      nil
-               :user         (-> (user-details (mt/fetch-user :rasta))
-                                 (dissoc :email :date_joined :last_login :is_superuser :is_qbnewb))
-               :diff         nil
-               :description  nil}]
-             (doall (for [revision (mt/user-http-request :crowberto :get 200 (format "dashboard/%d/revisions" dashboard-id))]
-                      (dissoc revision :timestamp :id))))))))
-
-
-;;; +----------------------------------------------------------------------------------------------------------------+
-;;; |                                         POST /api/dashboard/:id/revert                                         |
-;;; +----------------------------------------------------------------------------------------------------------------+
-
-(deftest revert-dashboard-test
-  (testing "POST /api/dashboard/:id/revert"
-    (testing "parameter validation"
-      (is (= {:errors {:revision_id "value must be an integer greater than zero."}}
-             (mt/user-http-request :crowberto :post 400 "dashboard/1/revert" {})))
-      (is (= {:errors {:revision_id "value must be an integer greater than zero."}}
-             (mt/user-http-request :crowberto :post 400 "dashboard/1/revert" {:revision_id "foobar"})))      )
-    (mt/with-temp* [Dashboard [{dashboard-id :id}]
-                    Revision  [{revision-id :id} {:model       "Dashboard"
-                                                  :model_id    dashboard-id
-                                                  :object      {:name        "a"
-                                                                :description nil
-                                                                :cards       []}
-                                                  :is_creation true}]
-                    Revision  [_                 {:model    "Dashboard"
-                                                  :model_id dashboard-id
-                                                  :user_id  (mt/user->id :crowberto)
-                                                  :object   {:name        "b"
-                                                             :description nil
-                                                             :cards       []}
-                                                  :message  "updated"}]]
-      (is (= {:is_reversion true
-              :is_creation  false
-              :message      nil
-              :user         (-> (user-details (mt/fetch-user :crowberto))
-                                (dissoc :email :date_joined :last_login :is_superuser :is_qbnewb))
-              :diff         {:before {:name "b"}
-                             :after  {:name "a"}}
-              :description  "renamed it from \"b\" to \"a\"."}
-             (dissoc (mt/user-http-request :crowberto :post 200 (format "dashboard/%d/revert" dashboard-id)
-                                           {:revision_id revision-id})
-                     :id :timestamp)))
-
-      (is (= [{:is_reversion true
-               :is_creation  false
-               :message      nil
-               :user         (-> (user-details (mt/fetch-user :crowberto))
-                                 (dissoc :email :date_joined :last_login :is_superuser :is_qbnewb))
-               :diff         {:before {:name "b"}
-                              :after  {:name "a"}}
-               :description  "renamed it from \"b\" to \"a\"."}
-              {:is_reversion false
-               :is_creation  false
-               :message      "updated"
-               :user         (-> (user-details (mt/fetch-user :crowberto))
-                                 (dissoc :email :date_joined :last_login :is_superuser :is_qbnewb))
-               :diff         {:before {:name "a"}
-                              :after  {:name "b"}}
-               :description  "renamed it from \"a\" to \"b\"."}
-              {:is_reversion false
-               :is_creation  true
-               :message      nil
-               :user         (-> (user-details (mt/fetch-user :rasta))
-                                 (dissoc :email :date_joined :last_login :is_superuser :is_qbnewb))
-               :diff         nil
-               :description  nil}]
-             (doall (for [revision (mt/user-http-request :crowberto :get 200 (format "dashboard/%d/revisions" dashboard-id))]
-                      (dissoc revision :timestamp :id))))))))
-
-
-;;; +----------------------------------------------------------------------------------------------------------------+
+;;; +--------------------------------------------------------------------------------------------------------------;;; +----------------------------------------------------------------------------------------------------------------+
 ;;; |                                            PUBLIC SHARING ENDPOINTS                                            |
 ;;; +----------------------------------------------------------------------------------------------------------------+
 
@@ -1185,17 +993,24 @@
     (cond-> url
       (seq query-params-str) (str "?" query-params-str))))
 
-(defn- chain-filter-values-url [dashboard-or-id param-key & query-params]
+(defn chain-filter-values-url [dashboard-or-id param-key & query-params]
   (add-query-params (format "dashboard/%d/params/%s/values" (u/the-id dashboard-or-id) (name param-key))
                     query-params))
 
-(defmacro ^:private let-url [[url-binding url] & body]
+;; TODO -- does this belong in somewhere shared like `metabase.test.util`? Seems generally useful. Consider renaming to
+;; `testing-url` so its purpose is clearer.
+(defmacro let-url
+  "Like normal `let`, but adds `testing` context with the `url` you've bound."
+  ;; TODO -- if we move this to `metabase.test.util`, should we have it handle multiple bindings?
+  {:style/indent 1}
+  [[url-binding url] & body]
   `(let [url# ~url
          ~url-binding url#]
+     ;; TODO -- if we move this to `metabase.test.util`, it shouldn't assume `GET`
      (testing (str "\nGET /api/" url# "\n")
        ~@body)))
 
-(defn- chain-filter-search-url [dashboard-or-id param-key query & query-params]
+(defn chain-filter-search-url [dashboard-or-id param-key query & query-params]
   {:pre [(some? param-key)]}
   (add-query-params (str (format "dashboard/%d/params/%s/search/" (u/the-id dashboard-or-id) (name param-key))
                          query)
@@ -1349,6 +1164,23 @@
             (is (= [[67 "Steakhouse"]]
                    (mt/user-http-request :rasta :get 200 url)))))))))
 
+(deftest chain-filter-should-use-cached-field-values-test
+  (testing "Chain filter endpoints should use cached FieldValues if applicable (#13832)"
+    (mt/with-temp-vals-in-db FieldValues (db/select-one-id FieldValues :field_id (mt/id :categories :name)) {:values ["Good" "Bad"]}
+      (with-chain-filter-fixtures [{:keys [dashboard]}]
+        (testing "GET /api/dashboard/:id/params/:param-key/values"
+          (let-url [url (chain-filter-values-url dashboard "_CATEGORY_NAME_")]
+            (is (= ["Bad" "Good"]
+                   (mt/user-http-request :rasta :get 200 url))))
+          (testing "Shouldn't use cached FieldValues if the request has any additional constraints"
+            (let-url [url (chain-filter-values-url dashboard "_CATEGORY_NAME_" "_PRICE_" 4)]
+              (is (= ["Japanese" "Steakhouse"]
+                     (mt/user-http-request :rasta :get 200 url))))))
+        (testing "GET /api/dashboard/:id/params/:param-key/search/:query"
+          (let-url [url (chain-filter-search-url dashboard "_CATEGORY_NAME_" "ood")]
+            (is (= ["Good"]
+                   (mt/user-http-request :rasta :get 200 url)))))))))
+
 (deftest valid-filter-fields-test
   (testing "GET /api/dashboard/params/valid-filter-fields"
     (letfn [(url [filtered filtering]
@@ -1367,19 +1199,19 @@
                          (mt/user-http-request :rasta :get 200 url))))))]
       (with-chain-filter-fixtures [{{dashboard-id :id} :dashboard}]
         (mt/$ids
-          (testing (format "\nvenues.price = %d categories.name = %d\n" %venues.price %categories.name)
-            (result= {(keyword (str %venues.price)) [%categories.name]}
-                     {:filtered [%venues.price], :filtering [%categories.name]})
-            (testing "Multiple Field IDs for each param"
-              (result= {(keyword (str %venues.price))    (sort [%venues.price %categories.name])
-                        (keyword (str %categories.name)) (sort [%venues.price %categories.name])}
-                       {:filtered [%venues.price %categories.name], :filtering [%categories.name %venues.price]}))
-            (testing "filtered-ids cannot be nil"
-              (is (= {:errors {:filtered (str "value must satisfy one of the following requirements:"
-                                              " 1) value must be a valid integer greater than zero."
-                                              " 2) value must be an array. Each value must be a valid integer greater than zero."
-                                              " The array cannot be empty.")}}
-                     (mt/user-http-request :rasta :get 400 (url [] [%categories.name]))))))))
+         (testing (format "\nvenues.price = %d categories.name = %d\n" %venues.price %categories.name)
+           (result= {(keyword (str %venues.price)) [%categories.name]}
+                    {:filtered [%venues.price], :filtering [%categories.name]})
+           (testing "Multiple Field IDs for each param"
+             (result= {(keyword (str %venues.price))    (sort [%venues.price %categories.name])
+                       (keyword (str %categories.name)) (sort [%venues.price %categories.name])}
+                      {:filtered [%venues.price %categories.name], :filtering [%categories.name %venues.price]}))
+           (testing "filtered-ids cannot be nil"
+             (is (= {:errors {:filtered (str "value must satisfy one of the following requirements:"
+                                             " 1) value must be a valid integer greater than zero."
+                                             " 2) value must be an array. Each value must be a valid integer greater than zero."
+                                             " The array cannot be empty.")}}
+                    (mt/user-http-request :rasta :get 400 (url [] [%categories.name]))))))))
       (testing "should check perms for the Fields in question"
         (with-chain-filter-fixtures [{{dashboard-id :id} :dashboard}]
           (mt/with-temp-copy-of-db
